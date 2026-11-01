@@ -15,15 +15,11 @@ label is not graded.
 
 **Pull request**
 
-[Link to the pull request you opened. It must be the pull request's own page on the Path
-Review repo, not your fork's branch page.]
+https://github.com/codepath/pathreview-ai301-fa26-s1/pull/246
 
 **Branch**
 
-[The name of the branch the pull request comes from, exactly as it appears in your fork.
-The naming shape is a type prefix, then the issue number, then a short description. **The
-issue number in the branch name must be the number of the issue the pull request fixes** —
-a name carrying any other number does not satisfy this field.]
+fix/57-skip-root-relative-vendor-paths
 
 ## Eval iterations
 
@@ -32,28 +28,23 @@ fields.
 
 **Run history**
 
-[The agreement score of each run you did, in order. A single run is a complete answer if
-only one run occurred. **The last score in your list must match the agreement line in the
-`eval-run.txt` you committed** — that file is the record of your final run.]
+- 19/20
 
 **Package analysis**
 
-[Pick one scored package (`pkg-01` through `pkg-20` — the four `calib-` packages are never
-scored). Name it by id, say what your rubric decided and what the gold label said, and
-explain why your rubric read it that way.]
+pkg-20 (category: standards-wall). Gold label: reject. My rubric said accept, so it is my one disagreement in the final run (the note in `eval-run.txt` is `graded accept`). The other standards-wall package, pkg-01, was rejected correctly, so the category scored 1/2.
+
+My rubric accepted it because every `required` check passed, and the verdict rule is "**accept** if every `required` check passes". A standards-wall package is one that gets past the correctness checks (diff within scope, plan delivered, description matches the diff, observable test evidence) but breaks the repo's own standards. The checks that are meant to catch that are `Repo checks run` and `Template and disclosure honored`, and both graded pass on this package, so nothing in my rubric held it.
 
 **Check rationale**
 
-[Quote one check from the `rubric.md` you uploaded to `tools/pr-precheck/`, exactly as it reads now.
-Then say why it reads that way — what you revised to get there, or what you rejected in
-favour of it.]
+> | Template and disclosure honored | The repo's PR template sections and stated policy (including AI-use disclosure), read against the PR description | Every template section is present with real, specific content (no empty sections, placeholders, or boilerplate left in), and any disclosure the repo asks for is present and truthful. Fail if a section is skipped or boilerplate, or a stated ask is visibly ignored. | required |
+
+It reads that way because the standards-wall family is about the repo's stated rules, not about how the description looks. The pass condition asks for real, specific content in each template section and for the disclosure to be present and truthful, so a grader looks at what is written and whether it is true, not just whether a heading exists. A check that only counted headings would pass boilerplate, which is the failure this family is built around.
 
 **Trade-offs**
 
-[Every check gives something up. Any one of these is a complete answer: a package whose
-result it changes, a canary you re-ran with `--only`, a case you accept it will miss, or a
-stated reason nothing changed elsewhere. "Nothing changed, and here is how I know" earns
-the point in full when the reason follows.]
+This check is where my rubric still misses a case: pkg-20 is gold reject but my rubric accepts it, which is why the final score is 19/20 and not 20/20 and why standards-wall is 1/2. The check judges stated rules against the description, so a standards problem that is not visible in the repo-facts or template text the package quotes will pass it. I accept that miss for now instead of making the check stricter, because every clear-accept package (7/7) still accepts, and a stricter wording risks rejecting honest PRs that disclose a shortfall, which the rubric says can be ready.
 
 ---
 
