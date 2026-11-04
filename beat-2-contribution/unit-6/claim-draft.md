@@ -1,0 +1,1 @@
+Hi, I'd like to take this one. I plan to add `buildToolAnnotations()` in `src/tool-bridge.ts`, pass the result to `registerTool`, and add the tests and `README.md` / `CHANGELOG.md` notes listed in the issue. I expect to open a PR within a few days. If I can't continue, I'll say so here.
