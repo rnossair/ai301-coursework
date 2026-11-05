@@ -11,7 +11,7 @@ files and no evidence uploads are part of Assignment 5.
 **Student:** Rayane Nossair
 **GitHub Username:** rnossair
 **Issue:** https://github.com/irahardianto/pi-mcp-extension/issues/253
-**Pull Request:** [GitHub PR link, once opened]
+**Pull Request:** https://github.com/irahardianto/pi-mcp-extension/pull/265
 
 One repository, built across units 5 to 8, telling the whole story of your real
 contribution. Fill it as you work, not at the end — the sections below ask for evidence that
@@ -54,18 +54,19 @@ happened; these entries are the toolkit's own timeline.
 All four entries are graded. Keep every heading below, and fill each
 one in the week it belongs to.
 
-**Unit 5: [one line on the tool work]**
+**Unit 5: issue-scout search queries, and a rubric fix for new maintainer-filed issues**
 
 I wrote three search queries based on my fit profile: AI-engineering terms in Python and TypeScript, plus a React/Next/Express fallback. I ranked the results by dropping assigned, stale, and crowded issues, capping each repo at 2 slots, and putting AI-related titles first. Every query returned zero results on the first scan, because I had wrapped the keywords in double quotes ("llm OR agent OR rag") and gh searched for that exact phrase instead of separate keywords joined by OR. I removed the quotes so each term is a separate argument, and I logged a rubric gap the scan exposed: amd/gaia#4779 passed even though a merged PR had already done most of the work.
 
-**Unit 6: repro-check and my voice guide, run on my claim and repro drafts**
+**Unit 6: voice guard hook, repo memory and repro-check on my claim and repro**
 
-I ran repro-check first in claim-only mode on my claim comment, then on the full claim-plus-repro package, and held both drafts against my voice guide. Both came back accept, and I confirmed from the repo's CONTRIBUTING.md and AGENTS.md that there is no AI-disclosure rule. The voice guide caught something the rubric did not: "I expect to open a PR within a few days" breaks my no-promised-timelines rule, but the rubric passed it because "expect" is hedged, so the two disagree on that line. I overrode the voice guide myself and posted the claim with that sentence in it, because I judged the hedged "expect ... within a few days" to be a reasonable estimate for a small change and the claim also says I will release it if I cannot continue. The override was my call, not the tool's, and I would tighten the claim check to fail any stated timeframe so the rubric and my voice guide agree next time. plan-check also refused to grade, correctly, because I had no `plan.md` for #253 and no posted repro comment yet, which showed me the order of work: post the repro first, then write the plan. I have since posted the repro comment on #253.
+I installed a voice-guard hook that blocks `gh issue comment` until repro-check has passed the draft, and I wrote `CLAUDE.local.md` in my clone as repo memory (48 lines: the lint limits, the smoke-test file list, PR and CHANGELOG rules, the subsystem notes for #253, and the AI-policy note). It is excluded through `.git/info/exclude`, so it never reaches the PR. repro-check passed my claim and my repro, but the voice guide flagged "I expect to open a PR within a few days" as breaking my no-promised-timelines rule, and the rubric passed it because "expect" is hedged. I overrode the voice guide myself and posted the claim with that sentence, because I judged it a reasonable estimate for a small change and the claim also says I will release it if I cannot continue. The override was my call, and I would tighten the claim check to fail any stated timeframe so the rubric and my voice guide agree. One small leftover: the `@AGENTS.md` hint comment is still in `CLAUDE.local.md`.
 
-**Unit 7: [one line on the tool work]**
+**Unit 7: ship-gate and manifest, a coverage claim I had overstated, and a hook that never ran**
 
-[2-4 sentences: the ship-gate and your gate manifest. What it produced
-on your real branch, what fought you, what changed because of it.]
+I installed the ship-gate hook and filled in `ship-manifest.md` in my clone: five must-pass checks (`npm ci`, lint, typecheck, tests with the 95/85/83 coverage floors, `npm pack --dry-run`), each sourced to CONTRIBUTING.md, AGENTS.md or `package.json`, and five dated exclusions. Four of the exclusions are tools I don't have installed locally (semgrep, gitleaks, qlty, actionlint), each noted with the CI job that covers it. The fifth replaces `npm run test:coverage` with the same command and a double-quoted glob, because on Windows the single-quoted glob selects no files and the floors pass on nothing. Filling in the manifest is what exposed that: my earlier PR draft said "coverage floors met" on an empty report, so I re-ran with the corrected glob and fixed the line.
+
+The ship-gate itself never ran on my PR. Its hook in `~/.claude/settings.json` was installed as `python3 ".../check_gate.py"`, but on my Windows machine `python3` is only the Microsoft Store shortcut, which prints "Python was not found" and exits with code 49. Claude Code stops a command only when a hook exits with code 2, so the failed hook let the PR command through without any checks. I only noticed afterwards: PR #265 had already opened, and `~/.claude/ship-gate/gate-log.md`, which the gate writes on every run, did not exist. I changed the hook command to `python` (which resolves to my Python 3.14 install). I did not re-run the gate, because the PR was already submitted, so my gate evidence for this PR is the manifest and the repo checks I ran by hand, not a gate pass. The lesson is that a hook failing for a setup reason fails open, so after installing one I should test it once with a harmless command and look for its log.
 
 **Unit 8: [one line on the tool work]**
 
@@ -97,26 +98,26 @@ Claim comment: https://github.com/irahardianto/pi-mcp-extension/issues/253#issue
 
 **Problem Description**
 
-[In your own words, what is broken or missing?]
+pi-mcp-extension bridges MCP servers' tools into the Pi coding agent. MCP tools can carry annotations, four boolean hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) that say what a tool does. The bridge turned those hints into text in the tool's description but never gave Pi the structured data, so anything in Pi that decides whether to confirm a call (a permission extension, a `beforeToolCall` hook) could not tell a read-only tool from a destructive one.
 
 **Expected Behavior**
 
-[What should happen?]
+Each bridged tool is registered with Pi's `registerTool` carrying an `annotations` object with the boolean hints the MCP server sent. The tool's label and description text stay as they are, and a tool with no usable hints registers exactly as before, with no `annotations` field.
 
 **Current Behavior**
 
-[What actually happens?]
+`ToolBridge._registerTool` registers every tool without an `annotations` field. In my repro a tool with `destructiveHint: true` produced the description `Delete a record [⚠️ destructive]` and `annotations: undefined`.
 
 **Affected Components**
 
-[Which parts of the codebase are involved?]
+`src/tool-bridge.ts` (`_registerTool` and a new `buildToolAnnotations` helper), `tests/tool-bridge.test.ts`, `README.md`, `CHANGELOG.md`, and `SECURITY.md` (the supported-version line the repo asks for on a `feat`). Not touched: `src/index.ts`, whose resource tools already pass annotations, and `src/tool-discovery.ts`.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code, used to read the issue, `src/tool-bridge.ts` and the Pi type definitions. No grading skill ran in this phase.
+- What it produced: the plain-language problem statement above and the list of affected files, which I checked against the issue's own "files to touch" list.
+- Difficulties: none met.
+- What changed: nothing.
 
 ---
 
@@ -180,93 +181,94 @@ annotations     : undefined
 
 **Analysis**
 
-[Your analysis of the root cause: what is causing the issue, traced
-to the files and functions involved.]
+The root cause is in `ToolBridge._registerTool` in `src/tool-bridge.ts`. It builds the `registerTool` object from `name`, `label`, `description`, `promptSnippet`, `parameters` and `execute` only. It reads `tool.annotations` for the label (the `title`) and for `buildToolDescription` (the text hints) but never copies the hint booleans into an `annotations` field. Pi 1.3.0 already declares `annotations?: ToolAnnotations` on its tool definition, so the field is accepted and simply never sent. Not verified: how a real permission extension reacts, since none is installed here.
 
 **Proposed Solution**
 
-[High-level description of your fix approach, and what you are
-deliberately NOT changing.]
+Add a pure helper, `buildToolAnnotations`, that copies the four hints only when the value is strictly a boolean (so `false` is kept), ignores `title` and non-boolean values, and returns `undefined` when nothing applies. `_registerTool` spreads its result into `registerTool` only when defined, which satisfies `exactOptionalPropertyTypes` and omits the field instead of sending `{}`. Deliberately not changing: `buildToolDescription`, `label`, `promptSnippet`, `src/index.ts`, `src/tool-discovery.ts`, any refactor of `tool-bridge.ts`, or dependencies.
 
 **Implementation Plan**
 
-1. [Modify file X to do Y]
-2. [Add or change Z]
-3. [Update tests]
+1. Write the tests first in `tests/tool-bridge.test.ts` and run the passthrough test against unchanged `src/` to see it fail.
+2. Add `buildToolAnnotations` and the conditional spread in `src/tool-bridge.ts`, and update the file's header comment.
+3. Update `README.md` (the features line and the spec table row) and add a `### Added` entry under `[Unreleased]` in `CHANGELOG.md`.
+4. Update the `SECURITY.md` supported-version table, which `AGENTS.md` requires for a `feat`.
+5. Run lint, typecheck, test coverage and `npm pack --dry-run`, then open the PR with `Closes #253`.
 
-[Record deviations here as they happen: what changed mid-build and
-why. A recorded deviation is honest work; silent drift is not.]
+Deviations recorded in my plan: the new tests went into their own `describe("ToolBridge annotations passthrough")` block instead of next to the existing description-hint test, with no behavior difference; and `SECURITY.md` moved the supported line to `1.14.x` instead of `1.13.x`, because `1.13.0` shipped (#261) while I was working.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: plan-check (my rubric, procedure and voice guide), run live on `plan.md` and `plan-comment.md` for #253, using my posted repro comment as the evidence.
+- What it produced: a reject on the first run, then an accept two minutes later. The first run failed `diagnosis-matches-repro` because `plan.md` stated a goal but no cause and cited my local `repro-draft.md` instead of the posted comment. It also found no `plan-comment.md` to grade, and it noted that the passthrough test is the only new test that fails before the fix. After I added a Cause section, linked the posted comment, reworded the test step and wrote the plan comment, all required checks passed.
+- Difficulties: `procedure.md` is silent on a missing plan-comment draft in live mode, and on a plan that cites an unposted file. I graded both conservatively as `unclear` and `fail`. The voice guide again flagged the timeline in my posted claim.
+- What changed: I rewrote the plan as above. I would add both missing cases to `procedure.md`.
 
 ---
 
 ## Testing Strategy
 
-[What observable checks prove the fix: your reproduction steps re-run
-against the built change (before and after), and the repo's own test
-suite or checks with the outcome shown. "Tests pass" with nothing
-observable named is not a strategy.]
+Before and after, on the same test. With the `...(toolAnnotations ? { annotations: toolAnnotations } : {})` line commented out, the new passthrough test fails with `undefined` where `{ destructiveHint: true, readOnlyHint: false }` was expected, the same failure as my repro. With the line restored it passes. Four of the seven new tests fail without the spread (passthrough, all four hints, title not copied, non-boolean values ignored while valid hints survive). The other three (key omitted with no annotations, key omitted with only a `title`, description hints unchanged) are regression guards and pass either way.
+
+The seven new tests cover the repro input, all four hints including `false`, omission when a tool has no annotations or only a `title`, `title` not copied into `annotations`, non-boolean values ignored, and the description text unchanged. Repo checks on Windows 11 / Node v24.13.1 / Pi 1.3.0:
+
+- `npm run lint`: exit 0
+- `npm run typecheck`: exit 0
+- tests with coverage floors (95/85/83): exit 0, 657 tests, 653 passed, 0 failed, 4 platform skips; `tool-bridge.ts` 98.27% lines / 94.59% branches / 95.65% functions
+- `npm pack --dry-run`: exit 0, 35 files
+
+On Windows npm's single-quoted `--test-coverage-include='src/**'` selects no files, so I ran the script's Node command with the glob double-quoted.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: the repo's own checks (`npm run lint`, `typecheck`, `test:coverage`, `npm pack --dry-run`), and pr-precheck, which re-ran the tests with the spread commented out.
+- What it produced: the red-then-green evidence and the 4-of-7 count in the Testing Strategy above. The repo checks all exited 0.
+- Difficulties: the npm coverage script selects no files on Windows because of its single-quoted glob.
+- What changed: I ran the script's Node command directly with the glob double-quoted, and said so in the PR.
 
 ---
 
 ## Implementation Notes
 
-[A running log, added to as you work. Date each entry. What you
-built, decisions you made when you made them, wrong turns included.]
+**2026-11-03 to 2026-11-04**
 
-**[Date]**
+Scouted the issue, posted my claim, then posted the repro comment. The repro was a throwaway unit test against the bridge's output, not the RPC smoke test, because `tests/mock-server.ts` sets no annotations.
 
-[Entry]
+**2026-11-04**
 
-**[Date]**
+Wrote `plan.md`, with the test-first order of work. Created the branch `feat/253-pass-mcp-annotations`. Wrote the failing passthrough test first and kept its output. Added `buildToolAnnotations` using a `readonly` key list and a loop, to stay inside the repo's lint complexity limits, and the conditional spread in `_registerTool`.
 
-[Entry]
+While I was working, `main` moved to v1.13.0 (#261), so I rebased onto it and changed the `SECURITY.md` supported line to `1.14.x` instead of `1.13.x`. I also put the seven tests in their own `describe` block instead of next to the existing description-hint test. Both are recorded as deviations in my plan.
+
+The coverage check failed to select any files on Windows because of the single-quoted glob in the npm script. I ran its Node command with the glob double-quoted. Committed as `6f12dbc` (`feat(tool-bridge): pass MCP tool annotations to Pi registerTool definition`) and opened PR #265 that evening.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code, for the edits and test runs, with git on the `feat/253-pass-mcp-annotations` branch.
+- What it produced: commit `6f12dbc` with the helper, seven tests and the doc changes.
+- Difficulties: `main` moved to v1.13.0 while I worked, and the Windows coverage glob failed.
+- What changed: I updated the `SECURITY.md` version to 1.14.x and recorded both in the plan's Deviations section.
 
 ---
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when opened]
+**PR Link:** https://github.com/irahardianto/pi-mcp-extension/pull/265
 
-**PR Description:** [what the PR says; much of the content above
-adapts into it]
+**PR Description:** Title `feat(tool-bridge): pass MCP tool annotations to Pi registerTool definition`, `Closes #253`, one commit (`6f12dbc`) on top of v1.13.0 from `rnossair:feat/253-pass-mcp-annotations`. It explains the gap and the helper, lists the scope (`src/tool-bridge.ts`, `tests/tool-bridge.test.ts`, `README.md`, `CHANGELOG.md`, `SECURITY.md`), and gives the release impact. The Verification section has the lint, typecheck, test and pack results and the red-then-green output. It says why the pre-merge smoke test was not run (`tool-bridge.ts` is not on the runtime-behavior list in `AGENTS.md`) and offers to run it. It states the limits, a self-review checklist, and an AI-use disclosure (Claude Code, Sonnet 5.5).
 
 **Maintainer Feedback:**
 
-- [Date]: [feedback received, or "none yet"; silence is a normal
-  state and costs you nothing]
-- [Date]: [how you addressed it]
+- 2026-11-04: none yet; PR #265 has no comments or reviews.
 
-**Status:** [Awaiting review / Iterating / Merged / Closed. The
-status is a fact you record, never a grade: the PR is graded as
-opened.]
+**Status:** Awaiting review
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: pr-precheck (my rubric and procedure), run live on `pr-draft.md` against `plan.md`, the diff and the repo's PR template.
+- What it produced: a reject, then an accept on the corrected draft with all 10 checks passing. The first run failed "Description matches diff": my draft said only the first two new tests fail before the change, but with the spread disabled four of seven fail. It also failed "Template and disclosure honored" because I had left out the template's Self-review section.
+- Difficulties: the wrong claim in the description was a mistake in my draft, caught only because the tool re-ran the tests. `procedure.md` says to diff against `main`, but my local `main` was stale, so the run used `origin/main`. The placeholder rule text also still mentions a "Path Review repo".
+- What changed: I corrected the test count, added the Self-review section and updated `plan.md` for the two drifts. I would fix the `main` versus `origin/main` step and the placeholder text in `procedure.md`.
 
 ---
 
@@ -274,25 +276,22 @@ opened.]
 
 **Technical Skills Gained**
 
-[What you learned technically, named concretely.]
+I learned how a conditional spread keeps a TypeScript object valid under `exactOptionalPropertyTypes`, and how to write a helper inside a repo's lint complexity limits. I also learned how MCP tool annotations flow from `tools/list` into an agent's tool registry, and that the MCP SDK already validates them as booleans, so my non-boolean test is reachable only through a mock. On the process side I learned the repo's release rules: Conventional Commit titles, a `CHANGELOG.md` entry under `[Unreleased]`, and the `SECURITY.md` table for a `feat`.
 
 **Challenges Overcome**
 
-[What was hard and how you solved it; point at the real events, the
-Toolkit blocks above are full of them.]
+The scout's first scan returned zero results until I unquoted the OR query, and it first rejected #253 until I changed the Active Issue rule (see Why I Chose This Issue). While building, `main` moved to v1.13.0, which changed the `SECURITY.md` version I needed, and the npm coverage script selected no files on Windows because of a quoted glob. I recorded the first as a plan deviation and worked around the second by running the Node command directly.
 
 **What I'd Do Differently Next Time**
 
-[Reflection on your process.]
+I would run repro-check on the claim before posting it, so my voice guide and the rubric agree on timelines first. I would also push the repro test to a fork branch so "Commit showing reproduction" has a real link, and write down in the plan which files the repo's release rules touch (here `SECURITY.md`) before building, not after.
 
 ---
 
 ## Resources Used
 
-[What actually helped, not a reading list. List things this story
-already shows you using: the doc you followed to set the environment
-up, the thread that explained the bug, the person who answered you.
-One real entry beats ten plausible ones.]
-
-- [Link to documentation that helped]
-- [Discussion, issue, or post that helped]
+- [CONTRIBUTING.md](https://github.com/irahardianto/pi-mcp-extension/blob/main/CONTRIBUTING.md): Conventional Commit PR titles, the `CHANGELOG.md` rule, and the smoke-test recipe
+- [AGENTS.md](https://github.com/irahardianto/pi-mcp-extension/blob/main/AGENTS.md): lint complexity limits, the `SECURITY.md` rule for a `feat`, and the runtime-behavior list for the smoke test
+- [Issue #253](https://github.com/irahardianto/pi-mcp-extension/issues/253): the owner's full design (helper, conditional spread, test cases)
+- `types.d.ts` in `@earendil-works/pi-coding-agent` 1.3.0: shows that Pi declares `annotations?: ToolAnnotations`
+- [PR #261](https://github.com/irahardianto/pi-mcp-extension/pull/261): showed the Windows coverage-glob workaround and the 1.13.0 release that moved my `SECURITY.md` version
